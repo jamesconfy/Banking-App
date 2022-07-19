@@ -34,6 +34,7 @@ class User(db.Model):
 
 class Transfer(db.Model):
     __tablename__ = 'transfer'
+    id = db.Column(db.Integer, primary_key=True)
 
 class UserSchema(Schema):
     email = fields.Str(data_key="Email")
