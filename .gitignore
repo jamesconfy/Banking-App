@@ -130,3 +130,5 @@ dmypy.json
 
 #myfiles
 sites.db*
+*.code-workspace
+.vscode*

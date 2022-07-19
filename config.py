@@ -1,5 +1,8 @@
 from os import environ as env
 from datetime import timedelta
+from dotenv import load_dotenv as ld
+
+ld(".env")
 
 class DevConfig(object):
     SECRET_KEY = env.get('SECRET_KEY')

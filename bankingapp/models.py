@@ -19,9 +19,10 @@ class User(db.Model):
     firstName = db.Column(db.String(120), nullable=False)
     lastName = db.Column(db.String(120), nullable=False)
     phoneNumber = db.Column(db.String(120), nullable=False, unique=True)
+    role = db.Column(db.String(120), nullable=False, default='Customer')
 
     accountNumber = db.Column(db.String(120), nullable=False, unique=True)
-    accountBalance = db.Column(db.Float, nullable=False, default=0.0)
+    accountBalance = db.Column(db.Float(), nullable=False, default=0.0)
     accountType = db.Column(db.String(120), nullable=False)
     accountStatus = db.Column(db.String(120), nullable=False, default='Active')
     
@@ -32,12 +33,13 @@ class User(db.Model):
         return f'{self.email}'
 
 class UserSchema(Schema):
-    email = fields.Str()
-    firstName = fields.Str()
-    lastName = fields.Str()
-    phoneNumber = fields.Str()
-    accountNumber = fields.Str()
-    accountBalance = fields.Float()
-    accountType = fields.Str()
-    accountStatus = fields.Str()
-    dateOfBirth = fields.Date()
+    email = fields.Str(data_key="Email")
+    firstName = fields.Str(data_key='First Name')
+    lastName = fields.Str(data_key='Last Name')
+    phoneNumber = fields.Str(data_key='Phone Number')
+    accountNumber = fields.Str(data_key='Account Number')
+    accountBalance = fields.Float(data_key='Account Balance')
+    accountType = fields.Str(data_key='Account Type')
+    accountStatus = fields.Str(data_key='Account Status')
+    dateOfBirth = fields.Date(data_key='Date of Birth')
+    dateCreated = fields.Date(data_key='Date Created')
