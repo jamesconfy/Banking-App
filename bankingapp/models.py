@@ -21,8 +21,8 @@ class User(db.Model):
     phoneNumber = db.Column(db.String(120), nullable=False, unique=True)
     role = db.Column(db.String(120), nullable=False, default='Customer')
 
-    accountNumber = db.Column(db.String(120), nullable=False, unique=True)
-    accountBalance = db.Column(db.Float(), nullable=False, default=0.0)
+    accountNumber = db.Column(db.String(120), nullable=True, unique=True)
+    accountBalance = db.Column(db.Float(), nullable=True, default=0.0)
     accountType = db.Column(db.String(120), nullable=False)
     accountStatus = db.Column(db.String(120), nullable=False, default='Active')
     
@@ -31,6 +31,9 @@ class User(db.Model):
 
     def __repr__(self):
         return f'{self.email}'
+
+class Transfer(db.Model):
+    __tablename__ = 'transfer'
 
 class UserSchema(Schema):
     email = fields.Str(data_key="Email")
@@ -43,3 +46,4 @@ class UserSchema(Schema):
     accountStatus = fields.Str(data_key='Account Status')
     dateOfBirth = fields.Date(data_key='Date of Birth')
     dateCreated = fields.Date(data_key='Date Created')
+    role = fields.Str(data_key="Role")

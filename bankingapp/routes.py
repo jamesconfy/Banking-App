@@ -7,7 +7,7 @@ from bankingapp.models import User, UserSchema
 from flask_jwt_extended import jwt_required, unset_jwt_cookies, verify_jwt_in_request, current_user
 from flask_jwt_extended import set_access_cookies, create_access_token, create_refresh_token, set_refresh_cookies
 
-accountNumber = "1000000008"
+accountNumber = "1000000010"
 userSchema = UserSchema()
 allUserSchema = UserSchema(many=True)
 
@@ -33,8 +33,13 @@ def register():
         lastName = request.json.get('last name')
         phoneNumber = request.json.get('phone number')
         accountType = request.json.get('account type')
+        role = request.json.get('role')
 
-        user = User(email=email, password=password, firstName=firstName, lastName=lastName, phoneNumber=phoneNumber, accountType=accountType, accountNumber=accountNumber)
+        if role:
+            user = User(email=email, password=password, firstName=firstName, lastName=lastName, phoneNumber=phoneNumber, accountType=accountType, accountNumber=accountNumber, role=role)
+        else:
+            user = User(email=email, password=password, firstName=firstName, lastName=lastName, phoneNumber=phoneNumber, accountType=accountType, accountNumber=accountNumber)
+
         db.session.add(user)
         db.session.commit()
         accountNumber = str(int(accountNumber) + 1)
@@ -66,7 +71,7 @@ def login():
 
 @app.route('/users')
 def users():
-    users = User.query.order_by(User.dateCreated.desc()).all()
+    users = User.query.filter_by(role='Customer').order_by(User.dateCreated.desc()).all()
     result = allUserSchema.dump(users)
     return jsonify(result)
 
@@ -117,7 +122,103 @@ def user(user_id):
         unset_jwt_cookies(response, refresh_token)
         return response, 200
 
-@app.route('/users/<int:user_id>/')
+@app.route('/deposit', methods=['POST', 'GET'])
+def deposit():
+    verify_jwt_in_request(locations='cookies')
+    if request.method == 'GET':
+        return jsonify({"role": f"{current_user.role}"})
+    
+    if request.method == 'POST':
+        if request.is_json:
+            if current_user.role == 'Admin':
+                accountNumber = request.json.get('account number')
+                if not accountNumber:
+                    abort(400, description='You must provide an account number')
+                
+                customer = User.query.filter_by(accountNumber=accountNumber).first()
+                if not customer:
+                    abort(400, description='That account number is not in our database!')
+
+                amount = request.json.get('amount')
+                if not amount:
+                    abort(400, description='You must provide the amount to deposit')
+
+                customer.accountBalance += amount
+                db.session.commit()
+
+                response = jsonify({
+                    "code": 200,
+                    "message": f"{amount} deposited successfully to {customer.firstName} {customer.lastName} with account number of {accountNumber}"
+                })
+
+                return response, 200
+
+            else:
+                abort(404, description='You are not authorized to do that!')
+        else:
+            abort(400, description='Content-Type must be application/json')
+
+@app.route('/transfer', methods=['POST', 'GET'])
+def transfer():
+    verify_jwt_in_request(locations='cookies')
+    if request.method == 'GET':
+        return jsonify({"role": f"{current_user.role}"})
+    
+    if request.method == 'POST':
+        if current_user.role == 'Customer':
+            if request.is_json: 
+                recipient = User.query.filter_by(accountNumber=request.json.get('receiver')).first()
+                if not recipient:
+                    abort(404, description='Check the account number and try again')
+
+                amount = request.json.get('amount')
+                if amount and amount <= current_user.accountBalance:
+                    recipient.accountBalance += amount
+                    current_user.accountBalance -= amount
+
+                    db.session.commit()
+                    response = {
+                        "code": 200,
+                        "sender": f"{current_user.firstName} {current_user.lastName}",
+                        "amount sent": f"{amount}",
+                        "recipient": f"{recipient.firstName} {recipient.lastName}",
+                        "message": "Successful"
+                    }
+
+                    return response, 200
+
+                else:
+                    abort(400, description='Insufficient Balance!')
+        elif current_user.role == 'Admin':
+            sender = User.query.filter_by(accountNumber=request.json.get('sender')).first()
+            if not sender:
+                abort(404, description="Check the sender's account")
+
+            receiver = User.query.filter_by(accountNumber=request.json.get('receiver')).first()
+            if not receiver:
+                abort(404, description="Check your destination's account")
+
+            amount = request.json.get('amount')
+            if amount and amount <= sender.accountBalance:
+                sender.accountBalance -= amount
+                receiver.accountBalance += amount
+
+                db.session.commit()
+                response = {
+                    "code": 200,
+                    "sender": f"{sender.firstName} {sender.lastName}",
+                    "amount sent": f"{amount}",
+                    "receiver": f"{receiver.firstName} {receiver.lastName}",
+                    "message": "Successful"
+                }
+
+                return response, 200
+
+            else:
+                abort(400, description='Insufficient Balance!')
+
+        else:
+            abort(400, description='You are not authorized to do that.')
 
 @app.route('/logout')
 @jwt_required(locations='cookies')
