@@ -1,15 +1,18 @@
 import json
 from datetime import timedelta
 from werkzeug.exceptions import HTTPException
-from flask import current_app as app, redirect, request, jsonify, abort, url_for
+from flask import current_app as app, request, jsonify, abort
 from bankingapp import db, bcrypt
-from bankingapp.models import User, UserSchema
+from bankingapp.models import Transfer, User, Deposit, UserSchema, DepositSchema, Transfer, TransferSchema
 from flask_jwt_extended import jwt_required, unset_jwt_cookies, verify_jwt_in_request, current_user
 from flask_jwt_extended import set_access_cookies, create_access_token, create_refresh_token, set_refresh_cookies
 
 accountNumber = "1000000010"
 userSchema = UserSchema()
 allUserSchema = UserSchema(many=True)
+allDepositSchema = DepositSchema(many=True)
+transferSchema = TransferSchema()
+allTransferSchema = TransferSchema(many=True)
 
 @app.route('/')
 @app.route('/home')
@@ -132,6 +135,7 @@ def deposit():
         if request.is_json:
             if current_user.role == 'Admin':
                 accountNumber = request.json.get('account number')
+                sender = request.json.get('sender')
                 if not accountNumber:
                     abort(400, description='You must provide an account number')
                 
@@ -144,6 +148,8 @@ def deposit():
                     abort(400, description='You must provide the amount to deposit')
 
                 customer.accountBalance += amount
+                deposit = Deposit(amount=amount, sender=sender, user_deposit=customer.id)
+                db.session.add(deposit)
                 db.session.commit()
 
                 response = jsonify({
@@ -157,6 +163,18 @@ def deposit():
                 abort(404, description='You are not authorized to do that!')
         else:
             abort(400, description='Content-Type must be application/json')
+
+@app.route('/deposit/<int:user_id>/history')
+def depositHistory(user_id):
+    user = User.query.get_or_404(user_id)
+    print(user)
+    verify_jwt_in_request(locations='cookies')
+    if current_user.role == 'Admin' or current_user == user:
+        deposit = Deposit.query.filter_by(user=user_id)
+        return jsonify(allDepositSchema.dump(deposit))
+    
+    abort(400, description='You are not authorized to do that!')
+    
 
 @app.route('/transfer', methods=['POST', 'GET'])
 def transfer():
@@ -175,47 +193,58 @@ def transfer():
                 if amount and amount <= current_user.accountBalance:
                     recipient.accountBalance += amount
                     current_user.accountBalance -= amount
-
-                    db.session.commit()
-                    response = {
-                        "code": 200,
-                        "sender": f"{current_user.firstName} {current_user.lastName}",
-                        "amount sent": f"{amount}",
-                        "recipient": f"{recipient.firstName} {recipient.lastName}",
-                        "message": "Successful"
-                    }
-
-                    return response, 200
-
                 else:
                     abort(400, description='Insufficient Balance!')
+
+                transfer = Transfer(amount=amount, receiverAccountNumber=f'{recipient.accountNumber}', receiverName=f'{recipient.firstName} {recipient.lastName}', user_transfer=current_user.id)
+                db.session.add(transfer)
+
+                deposit = Deposit(amount=amount, sender=f'{current_user.firstName} {current_user.lastName}', user_deposit=recipient.id)
+                db.session.add(deposit)
+
+                db.session.commit()
+                response = {
+                    "code": 200,
+                    "sender": f"{current_user.firstName} {current_user.lastName}",
+                    "amount sent": f"{amount}",
+                    "recipient": f"{recipient.firstName} {recipient.lastName}",
+                    "message": "Successful"
+                }
+
+                return response, 200             
+
         elif current_user.role == 'Admin':
             sender = User.query.filter_by(accountNumber=request.json.get('sender')).first()
             if not sender:
                 abort(404, description="Check the sender's account")
 
-            receiver = User.query.filter_by(accountNumber=request.json.get('receiver')).first()
-            if not receiver:
+            recipient = User.query.filter_by(accountNumber=request.json.get('receiver')).first()
+            if not recipient:
                 abort(404, description="Check your destination's account")
 
             amount = request.json.get('amount')
             if amount and amount <= sender.accountBalance:
                 sender.accountBalance -= amount
-                receiver.accountBalance += amount
-
-                db.session.commit()
-                response = {
-                    "code": 200,
-                    "sender": f"{sender.firstName} {sender.lastName}",
-                    "amount sent": f"{amount}",
-                    "receiver": f"{receiver.firstName} {receiver.lastName}",
-                    "message": "Successful"
-                }
-
-                return response, 200
-
+                recipient.accountBalance += amount
             else:
                 abort(400, description='Insufficient Balance!')
+
+            transfer = Transfer(amount=amount, receiverAccountNumber=f'{recipient.accountNumber}', receiverName=f'{recipient.firstName} {recipient.lastName}', user_transfer=sender.id)
+            db.session.add(transfer)
+
+            deposit = Deposit(amount=amount, sender=f'{recipient.firstName} {recipient.lastName}', user_deposit=recipient.id)
+            db.session.add(deposit)
+
+            db.session.commit()
+            response = {
+                "code": 200,
+                "sender": f"{sender.firstName} {sender.lastName}",
+                "amount sent": f"{amount}",
+                "receiver": f"{recipient.firstName} {recipient.lastName}",
+                "message": "Successful"
+            }
+
+            return response, 200
 
         else:
             abort(400, description='You are not authorized to do that.')

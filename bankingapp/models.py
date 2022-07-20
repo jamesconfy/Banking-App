@@ -22,19 +22,44 @@ class User(db.Model):
     role = db.Column(db.String(120), nullable=False, default='Customer')
 
     accountNumber = db.Column(db.String(120), nullable=True, unique=True)
-    accountBalance = db.Column(db.Float(), nullable=True, default=0.0)
+    accountBalance = db.Column(db.Float, nullable=True, default=0.0)
     accountType = db.Column(db.String(120), nullable=False)
     accountStatus = db.Column(db.String(120), nullable=False, default='Active')
     
     dateOfBirth = db.Column(db.DateTime(), nullable=False, default=datetime.utcnow)
     dateCreated = db.Column(db.DateTime(), nullable=False, default=datetime.utcnow)
 
+    deposit = db.relationship('Deposit', backref='user_deposit', lazy=True)
+    transfer = db.relationship('Transfer', backref='user_transfer', lazy=True)    
+
     def __repr__(self):
         return f'{self.email}'
+
+class Deposit(db.Model):
+    __tablename__ = 'deposit'
+    id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Float, nullable=False)
+    sender = db.Column(db.String(120), nullable=False)
+    user_deposit = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    dateCreated = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'{self.user.email}'
+
 
 class Transfer(db.Model):
     __tablename__ = 'transfer'
     id = db.Column(db.Integer, primary_key=True)
+    amount = db.Column(db.Float, nullable=False)
+    receiverName = db.Column(db.String(240), nullable=False)
+    receiverNameAccountNumber = db.Column(db.String(120), nullable=False)
+    user_transfer = db.Column(db.Integer, db.ForeignKey('user.id'))
+
+    dateCreated = db.Column(db.DateTime(), nullable=False, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f'{self.user.email}'
 
 class UserSchema(Schema):
     email = fields.Str(data_key="Email")
@@ -48,3 +73,15 @@ class UserSchema(Schema):
     dateOfBirth = fields.Date(data_key='Date of Birth')
     dateCreated = fields.Date(data_key='Date Created')
     role = fields.Str(data_key="Role")
+
+class DepositSchema(Schema):
+    dateCreated = fields.Date(data_key='Date Created')
+    amount = fields.Float(data_key='Amount')
+    sender = fields.Str(data_key='Sender')
+    # receiver = fields.Nested(UserSchema)
+
+class TransferSchema(Schema):
+    dateCreated = fields.Date(data_key='Date Created')
+    amount = fields.Float(data_key='Amount')
+    receiverName = fields.Str(data_key="Receiver's Name")
+    receiverAccountNumber = fields.Str(data_key="Receiver's Account Number")
