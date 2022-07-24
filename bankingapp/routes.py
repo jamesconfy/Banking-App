@@ -1,5 +1,6 @@
 import json
-from datetime import timedelta
+from datetime import datetime, timedelta
+from tabnanny import check
 from werkzeug.exceptions import HTTPException
 from flask import current_app as app, request, jsonify, abort
 from bankingapp import db, bcrypt
@@ -13,6 +14,15 @@ allUserSchema = UserSchema(many=True)
 allDepositSchema = DepositSchema(many=True)
 transferSchema = TransferSchema()
 allTransferSchema = TransferSchema(many=True)
+
+@app.before_first_request
+def checkSafeToSpend():
+    if request.authorization:
+        if current_user.role == 'Customer':
+            if datetime.utcnow != current_user.dateSpend:
+                current_user.safeToSpend = 500000
+
+    return
 
 @app.route('/')
 @app.route('/home')
@@ -148,7 +158,7 @@ def deposit():
                     abort(400, description='You must provide the amount to deposit')
 
                 customer.accountBalance += amount
-                deposit = Deposit(amount=amount, sender=sender, user_deposit=customer.id)
+                deposit = Deposit(amount=amount, sender=sender, user_id=customer.id)
                 db.session.add(deposit)
                 db.session.commit()
 
@@ -193,13 +203,15 @@ def transfer():
                 if amount and amount <= current_user.accountBalance:
                     recipient.accountBalance += amount
                     current_user.accountBalance -= amount
+                    current_user.safeToSpend -= amount
+
                 else:
                     abort(400, description='Insufficient Balance!')
 
-                transfer = Transfer(amount=amount, receiverAccountNumber=f'{recipient.accountNumber}', receiverName=f'{recipient.firstName} {recipient.lastName}', user_transfer=current_user.id)
+                transfer = Transfer(amount=amount, receiverAccountNumber=f'{recipient.accountNumber}', receiverName=f'{recipient.firstName} {recipient.lastName}', user_id=current_user.id)
                 db.session.add(transfer)
 
-                deposit = Deposit(amount=amount, sender=f'{current_user.firstName} {current_user.lastName}', user_deposit=recipient.id)
+                deposit = Deposit(amount=amount, sender=f'{current_user.firstName} {current_user.lastName}', user_id=recipient.id)
                 db.session.add(deposit)
 
                 db.session.commit()
@@ -225,14 +237,15 @@ def transfer():
             amount = request.json.get('amount')
             if amount and amount <= sender.accountBalance:
                 sender.accountBalance -= amount
+                sender.safeToSpend -= amount
                 recipient.accountBalance += amount
             else:
                 abort(400, description='Insufficient Balance!')
 
-            transfer = Transfer(amount=amount, receiverAccountNumber=f'{recipient.accountNumber}', receiverName=f'{recipient.firstName} {recipient.lastName}', user_transfer=sender.id)
+            transfer = Transfer(amount=amount, receiverAccountNumber=f'{recipient.accountNumber}', receiverName=f'{recipient.firstName} {recipient.lastName}', user_id=sender.id)
             db.session.add(transfer)
 
-            deposit = Deposit(amount=amount, sender=f'{recipient.firstName} {recipient.lastName}', user_deposit=recipient.id)
+            deposit = Deposit(amount=amount, sender=f'{recipient.firstName} {recipient.lastName}', user_id=recipient.id)
             db.session.add(deposit)
 
             db.session.commit()
@@ -249,9 +262,20 @@ def transfer():
         else:
             abort(400, description='You are not authorized to do that.')
 
+@app.route('/safe')
+def safe():
+    verify_jwt_in_request(locations='cookies')
+    response = {
+        "Code": 200,
+        "Safe To Spend": current_user.safeToSpend
+    }
+
+    return response, 200
+
+
 @app.route('/logout')
-@jwt_required(locations='cookies')
 def logout():
+    verify_jwt_in_request(locations='cookies')
     response = jsonify({"msg": "logout successfully."})
     unset_jwt_cookies(response)
     return response, 200

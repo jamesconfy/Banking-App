@@ -25,12 +25,15 @@ class User(db.Model):
     accountBalance = db.Column(db.Float, nullable=True, default=0.0)
     accountType = db.Column(db.String(120), nullable=False)
     accountStatus = db.Column(db.String(120), nullable=False, default='Active')
+
+    safeToSpend = db.Column(db.Float, nullable=False, default=0.0)
+    dateSpend = db.Column(db.DateTime(), nullable=False, default=datetime.utcnow)
     
     dateOfBirth = db.Column(db.DateTime(), nullable=False, default=datetime.utcnow)
     dateCreated = db.Column(db.DateTime(), nullable=False, default=datetime.utcnow)
 
-    deposit = db.relationship('Deposit', backref='user_deposit', lazy=True)
-    transfer = db.relationship('Transfer', backref='user_transfer', lazy=True)    
+    user_deposit = db.relationship('Deposit', backref='user_deposit', lazy=True)
+    user_transfer = db.relationship('Transfer', backref='user_transfer', lazy=True)    
 
     def __repr__(self):
         return f'{self.email}'
@@ -40,9 +43,9 @@ class Deposit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Float, nullable=False)
     sender = db.Column(db.String(120), nullable=False)
-    user_deposit = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
-    dateCreated = db.Column(db.DateTime, nullable=False, default=datetime.utcnow)
+    dateCreated = db.Column(db.DateTime(), nullable=False, default=datetime.utcnow)
 
     def __repr__(self):
         return f'{self.user.email}'
@@ -54,12 +57,17 @@ class Transfer(db.Model):
     amount = db.Column(db.Float, nullable=False)
     receiverName = db.Column(db.String(240), nullable=False)
     receiverNameAccountNumber = db.Column(db.String(120), nullable=False)
-    user_transfer = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
 
     dateCreated = db.Column(db.DateTime(), nullable=False, default=datetime.utcnow)
 
     def __repr__(self):
         return f'{self.user.email}'
+
+class Unrelational(db.Model):
+    __tablename__ = 'unrelational'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)
 
 class UserSchema(Schema):
     email = fields.Str(data_key="Email")

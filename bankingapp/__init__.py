@@ -14,7 +14,7 @@ def create_app():
     bankingApp = Flask('bankingapp')
     bankingApp.config.from_object(DevConfig)
     db.init_app(app=bankingApp)
-    migrate.init_app(app=bankingApp, db=db, render_as_batch=True)
+    migrate.init_app(app=bankingApp, db=db, render_as_batch=True, compare_type=True)
     bcrypt.init_app(app=bankingApp)
     jwt.init_app(app=bankingApp)
 
