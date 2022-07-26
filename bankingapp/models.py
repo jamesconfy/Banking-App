@@ -55,7 +55,7 @@ class Deposit(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     amount = db.Column(db.Float, nullable=False)
     sender = db.Column(db.String(120), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     dateCreated = db.Column(db.DateTime(), nullable=False, default=datetime.utcnow)
 
@@ -68,7 +68,7 @@ class Transfer(db.Model):
     amount = db.Column(db.Float, nullable=False)
     receiverName = db.Column(db.String(240), nullable=False)
     receiverNameAccountNumber = db.Column(db.String(120), nullable=False)
-    user_id = db.Column(db.Integer, db.ForeignKey('user.id'))
+    user_id = db.Column(db.Integer, db.ForeignKey('user.id'), nullable=False)
 
     dateCreated = db.Column(db.DateTime(), nullable=False, default=datetime.utcnow)
 

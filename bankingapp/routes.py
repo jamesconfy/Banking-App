@@ -144,7 +144,7 @@ def user(user_id):
         unset_jwt_cookies(response, refresh_token)
         return response, 200
 
-@app.route('/deposit', methods=['POST', 'GET'])
+@app.route('/deposits', methods=['POST', 'GET'])
 def deposit():
     verify_jwt_in_request(locations='cookies')
     if request.method == 'GET':
@@ -167,7 +167,7 @@ def deposit():
                     abort(400, description='You must provide the amount to deposit')
 
                 customer.accountBalance += amount
-                deposit = Deposit(amount=amount, sender=sender, user_id=customer.id)
+                deposit = Deposit(amount=amount, sender=sender, user_deposit=customer)
                 db.session.add(deposit)
                 db.session.commit()
 
@@ -183,30 +183,37 @@ def deposit():
         else:
             abort(400, description='Content-Type must be application/json')
 
-@app.route('/deposit/history')
+@app.route('/deposits/history')
 def depositHistory():
-    # print(user)
     verify_jwt_in_request(locations='cookies')
-    user = User.query.get_or_404(current_user.id)
-    if current_user.role == 'Admin' or current_user == user:
-        deposit = Deposit.query.filter_by(user_id=user.id)
-        return jsonify(allDepositSchema.dump(deposit))
+    deposit = Deposit.query.filter_by(user_deposit=current_user)
+#    print(deposit.user_deposit)
+    # if current_user.role == 'Admin' or current_user.id == deposit.user_deposit.id:
+    return jsonify(allDepositSchema.dump(deposit))
     
-    abort(400, description='You are not authorized to do that!')
+    # abort(400, description='You are not authorized to do that!')
 
-@app.route('/deposit/history/<int:deposit_id>')
+@app.route('/deposits/history/<int:deposit_id>', methods=['GET', 'DELETE'])
 def depositHistoryOne(deposit_id):
     verify_jwt_in_request(locations='cookies')
-    user = User.query.get_or_404(current_user.id)
-    if current_user.role == 'Admin' or current_user == user:
-        print('deposit')
-        deposit = Deposit.query.get_or_404(deposit_id)
-        return jsonify(depositSchema.dump(deposit))
-    
+    deposit = Deposit.query.get_or_404(deposit_id)
+    if current_user == deposit.user_deposit:
+        if request.method == 'GET':
+            return jsonify(depositSchema.dump(deposit))
+
+        elif request.method == 'DELETE':
+            response = {
+                "code": 200,
+                "description": "Ticket deleted successfully."
+            }
+            db.session.delete(deposit)
+            db.session.commit()
+
+            return response, 200
+
     abort(400, description='You are not authorized to do that!')
     
-
-@app.route('/transfer', methods=['POST', 'GET'])
+@app.route('/transfers', methods=['POST', 'GET'])
 def transfer():
     verify_jwt_in_request(locations='cookies')
     if request.method == 'GET':
@@ -220,18 +227,23 @@ def transfer():
                     abort(404, description='Check the account number and try again')
 
                 amount = request.json.get('amount')
-                if amount and amount <= current_user.accountBalance:
-                    recipient.accountBalance += amount
-                    current_user.accountBalance -= amount
-                    current_user.safeToSpend -= amount
-
+                if amount:
+                    if amount <= current_user.accountBalance:
+                        if amount <= current_user.safeToSpend:
+                            recipient.accountBalance += amount
+                            current_user.accountBalance -= amount
+                            current_user.safeToSpend -= amount
+                        else:
+                            abort(400, description=f'Amount greater than safe to spend, your safe to spend is {current_user.safeToSpend}')
+                    else:
+                        abort(400, description='Insufficient Balance!')
                 else:
-                    abort(400, description='Insufficient Balance!')
+                    abort(400, description='Provide an amount!')
 
-                transfer = Transfer(amount=amount, receiverAccountNumber=f'{recipient.accountNumber}', receiverName=f'{recipient.firstName} {recipient.lastName}', user_id=current_user.id)
+                transfer = Transfer(amount=amount, receiverAccountNumber=f'{recipient.accountNumber}', receiverName=f'{recipient.firstName} {recipient.lastName}', user_transfer=current_user)
                 db.session.add(transfer)
 
-                deposit = Deposit(amount=amount, sender=f'{current_user.firstName} {current_user.lastName}', user_id=recipient.id)
+                deposit = Deposit(amount=amount, sender=f'{current_user.firstName} {current_user.lastName}', user_deposit=recipient)
                 db.session.add(deposit)
 
                 db.session.commit()
@@ -262,10 +274,10 @@ def transfer():
             else:
                 abort(400, description='Insufficient Balance!')
 
-            transfer = Transfer(amount=amount, receiverAccountNumber=f'{recipient.accountNumber}', receiverName=f'{recipient.firstName} {recipient.lastName}', user_id=sender.id)
+            transfer = Transfer(amount=amount, receiverAccountNumber=f'{recipient.accountNumber}', receiverName=f'{recipient.firstName} {recipient.lastName}', user_transfer=sender)
             db.session.add(transfer)
 
-            deposit = Deposit(amount=amount, sender=f'{recipient.firstName} {recipient.lastName}', user_id=recipient.id)
+            deposit = Deposit(amount=amount, sender=f'{recipient.firstName} {recipient.lastName}', user_deposit=recipient)
             db.session.add(deposit)
 
             db.session.commit()
@@ -282,16 +294,45 @@ def transfer():
         else:
             abort(400, description='You are not authorized to do that.')
 
+@app.route('/transfers/history')
+def tranferHistory():
+    # print(user)
+    verify_jwt_in_request(locations='cookies')
+    transfer = Transfer.query.filter_by(user_transfer=current_user)
+    # if current_user.role == 'Admin' or current_user == transfer.user_transfer:
+    return jsonify(allTransferSchema.dump(transfer))
+    
+    # abort(400, description='You are not authorized to do that!')    
+
+@app.route('/transfers/<int:transfer_id>', methods=['GET', 'DELETE'])
+def transferHistoryOne(transfer_id):
+    verify_jwt_in_request(locations='cookies')
+    transfer = Transfer.query.get_or_404(transfer_id)
+    if current_user == transfer.user_transfer:
+        if request.method == 'GET':
+            return jsonify(transferSchema.dump(transfer))
+
+        elif request.method == 'DELETE':
+            response = {
+                "code": 200,
+                "description": "Ticket deleted successfully."
+            }
+            db.session.delete(transfer)
+            db.session.commit()
+
+            return response, 200
+
+    abort(400, description='You are not authorized to do that!')
+
 @app.route('/safe')
 def safe():
     verify_jwt_in_request(locations='cookies')
     response = {
-        "Code": 200,
+        "code": 200,
         "Safe To Spend": current_user.safeToSpend
     }
 
     return response, 200
-
 
 @app.route('/logout')
 def logout():
