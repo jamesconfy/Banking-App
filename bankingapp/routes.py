@@ -1,12 +1,12 @@
 import json
-from datetime import datetime, timedelta
+from datetime import datetime, timezone
 from tabnanny import check
 from werkzeug.exceptions import HTTPException
 from flask import current_app as app, request, jsonify, abort
 from bankingapp import db, bcrypt
-from bankingapp.models import Transfer, User, Deposit, UserSchema, DepositSchema, Transfer, TransferSchema
-from flask_jwt_extended import jwt_required, unset_jwt_cookies, verify_jwt_in_request, current_user
-from flask_jwt_extended import set_access_cookies, create_access_token, create_refresh_token, set_refresh_cookies
+from bankingapp.models import Transfer, User, Deposit, UserSchema, DepositSchema, Transfer, TransferSchema, TokenBlocklist
+from flask_jwt_extended import unset_jwt_cookies, verify_jwt_in_request, current_user, get_jwt
+from flask_jwt_extended import set_access_cookies, create_access_token, create_refresh_token, set_refresh_cookies, get_jwt_identity, jwt_required
 
 accountNumber = "1000000010"
 userSchema = UserSchema()
@@ -15,13 +15,21 @@ allDepositSchema = DepositSchema(many=True)
 transferSchema = TransferSchema()
 allTransferSchema = TransferSchema(many=True)
 
-@app.before_first_request
+@app.before_request
 def checkSafeToSpend():
-    if request.authorization:
+    if 'access_token_cookie' in request.cookies:
+        verify_jwt_in_request(locations='cookies', refresh=True)
+        # # token = request.cookies['access_token_cookie']
+        # # print(token)
+        # identity = get_jwt_identity()
         if current_user.role == 'Customer':
-            if datetime.utcnow != current_user.dateSpend:
+            today = datetime.utcnow()
+            if today.strftime("%d-%m-%Y") != current_user.dateSpend.strftime("%d-%m-%Y"):
+                # print(datetime.utcnow(), current_user.dateSpend)
                 current_user.safeToSpend = 500000
+                current_user.dateSpend = datetime.utcnow()
 
+                db.session.commit()
     return
 
 @app.route('/')
@@ -66,7 +74,7 @@ def login():
         if request.is_json:
             user = User.query.filter_by(email=request.json.get('email')).one_or_none()
             if user and bcrypt.check_password_hash(user.password, request.json.get('password')):
-                access_token = create_access_token(identity=user)
+                access_token = create_access_token(identity=user, fresh=True)
                 refresh_token = create_refresh_token(identity=user)
                 response = jsonify({
                     'email': user.email,
@@ -276,10 +284,24 @@ def safe():
 @app.route('/logout')
 def logout():
     verify_jwt_in_request(locations='cookies')
+    jti = get_jwt()["jti"]
+    now = datetime.now(timezone.utc)
+    tokenBlock = TokenBlocklist(jti=jti, dateCreated=now)
+    db.session.add(tokenBlock)
+    db.session.commit()
     response = jsonify({"msg": "logout successfully."})
     unset_jwt_cookies(response)
     return response, 200
 
+@app.route('/refresh', methods=['POST'])
+# @jwt_required(locations='cookies', refresh=True)
+def refresh():
+    verify_jwt_in_request(locations='cookies', refresh=True)
+    identity = get_jwt_identity()
+    print(identity)
+    print('hello')
+    access_token = create_access_token(identity=current_user, fresh=False)
+    return jsonify(access_token=access_token)
 
 @app.errorhandler(HTTPException)
 def handle_exception(e):

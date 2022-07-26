@@ -11,6 +11,18 @@ def user_lookup_callback(_jwt_header, jwt_data):
     identity = jwt_data["sub"]
     return User.query.filter_by(id=identity).one_or_none()
 
+@jwt.token_in_blocklist_loader
+def check_if_token_revoked(jwt_header, jwt_payload: dict) -> bool:
+    jti = jwt_payload["jti"]
+    token = db.session.query(TokenBlocklist.id).filter_by(jti=jti).scalar()
+
+    return token is not None
+
+class TokenBlocklist(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    jti = db.Column(db.String(36), nullable=False, index=True)
+    dateCreated = db.Column(db.DateTime, nullable=False)
+
 class User(db.Model):
     __tablename__ = 'user'
     id = db.Column(db.Integer, primary_key=True)
@@ -50,7 +62,6 @@ class Deposit(db.Model):
     def __repr__(self):
         return f'{self.user.email}'
 
-
 class Transfer(db.Model):
     __tablename__ = 'transfer'
     id = db.Column(db.Integer, primary_key=True)
@@ -80,6 +91,8 @@ class UserSchema(Schema):
     accountStatus = fields.Str(data_key='Account Status')
     dateOfBirth = fields.Date(data_key='Date of Birth')
     dateCreated = fields.Date(data_key='Date Created')
+    safeToSpend = fields.Float(data_key='Safe To Spend')
+    dateSpend = fields.Date(data_key='Date Spend')
     role = fields.Str(data_key="Role")
 
 class DepositSchema(Schema):
