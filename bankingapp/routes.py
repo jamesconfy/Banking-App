@@ -11,6 +11,7 @@ from flask_jwt_extended import set_access_cookies, create_access_token, create_r
 accountNumber = "1000000010"
 userSchema = UserSchema()
 allUserSchema = UserSchema(many=True)
+depositSchema = DepositSchema()
 allDepositSchema = DepositSchema(many=True)
 transferSchema = TransferSchema()
 allTransferSchema = TransferSchema(many=True)
@@ -182,14 +183,25 @@ def deposit():
         else:
             abort(400, description='Content-Type must be application/json')
 
-@app.route('/deposit/<int:user_id>/history')
-def depositHistory(user_id):
-    user = User.query.get_or_404(user_id)
-    print(user)
+@app.route('/deposit/history')
+def depositHistory():
+    # print(user)
     verify_jwt_in_request(locations='cookies')
+    user = User.query.get_or_404(current_user.id)
     if current_user.role == 'Admin' or current_user == user:
-        deposit = Deposit.query.filter_by(user=user_id)
+        deposit = Deposit.query.filter_by(user_id=user.id)
         return jsonify(allDepositSchema.dump(deposit))
+    
+    abort(400, description='You are not authorized to do that!')
+
+@app.route('/deposit/history/<int:deposit_id>')
+def depositHistoryOne(deposit_id):
+    verify_jwt_in_request(locations='cookies')
+    user = User.query.get_or_404(current_user.id)
+    if current_user.role == 'Admin' or current_user == user:
+        print('deposit')
+        deposit = Deposit.query.get_or_404(deposit_id)
+        return jsonify(depositSchema.dump(deposit))
     
     abort(400, description='You are not authorized to do that!')
     
