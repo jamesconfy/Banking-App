@@ -3,7 +3,7 @@ from datetime import timedelta
 from dotenv import load_dotenv as ld
 import pymysql
 
-ld(".env")
+ld("docker.env")
 
 USERNAME = env.get('DB_USERNAME')
 PASSWORD = env.get('DB_PASSWORD')
