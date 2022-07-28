@@ -347,13 +347,18 @@ def logout():
 
 @app.route('/refresh', methods=['POST'])
 # @jwt_required(locations='cookies', refresh=True)
+@app.route('/refresh', methods=['POST'])
+# @jwt_required(locations='cookies', refresh=True)
 def refresh():
     verify_jwt_in_request(locations='cookies', refresh=True)
-    identity = get_jwt_identity()
-    print(identity)
-    print('hello')
+    # identity = get_jwt_identity()
     access_token = create_access_token(identity=current_user, fresh=False)
-    return jsonify(access_token=access_token)
+    response = jsonify({
+        "code": 200,
+        "access_token": access_token
+    })
+    set_access_cookies(response, access_token)
+    return response, 200
 
 @app.errorhandler(HTTPException)
 def handle_exception(e):
