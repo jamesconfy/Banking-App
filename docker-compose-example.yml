@@ -1,0 +1,40 @@
+version: '3.9'
+
+services:
+  bankingapp:
+    container_name: bankingapp
+    image: everybody8/bankingapp:v1.1
+    build:
+      context: .
+      dockerfile: ./Dockerfile
+    networks:
+      - mysqlnet
+    ports:
+      - 5008:5008
+    volumes:
+      - ./:/app
+    restart: always
+
+  mysqldb-bankingapp:
+    container_name: mysqldb-bankingapp
+    image: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: ########
+      MYSQL_DATABASE: ########
+      MYSQL_USER: ########
+      MYSQL_PASSWORD: ########
+    ports:
+      - 3311:3306
+    networks:
+      - mysqlnet
+    volumes:
+      - mysql:/var/lib/mysql
+      - mysql_config:/etc/mysql
+    restart: always
+
+volumes:
+  mysql:
+  mysql_config:
+
+networks:
+  mysqlnet:

@@ -134,3 +134,4 @@ sites.db*
 .vscode*
 .DStore
 *.db
+docker-compose.yml
