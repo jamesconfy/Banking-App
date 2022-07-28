@@ -1,12 +1,11 @@
 import json
 from datetime import datetime, timezone
-from tabnanny import check
 from werkzeug.exceptions import HTTPException
 from flask import current_app as app, request, jsonify, abort
 from bankingapp import db, bcrypt
 from bankingapp.models import Transfer, User, Deposit, UserSchema, DepositSchema, Transfer, TransferSchema, TokenBlocklist
 from flask_jwt_extended import unset_jwt_cookies, verify_jwt_in_request, current_user, get_jwt
-from flask_jwt_extended import set_access_cookies, create_access_token, create_refresh_token, set_refresh_cookies, get_jwt_identity, jwt_required
+from flask_jwt_extended import set_access_cookies, create_access_token, create_refresh_token, set_refresh_cookies, get_jwt_identity
 
 accountNumber = "1000000010"
 userSchema = UserSchema()
