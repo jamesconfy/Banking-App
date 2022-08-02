@@ -4,6 +4,9 @@ from config import DevConfig
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 from flask_bcrypt import Bcrypt
+from dotenv import load_dotenv as ld
+
+ld("flask.env")
 
 db = SQLAlchemy()
 jwt = JWTManager()
