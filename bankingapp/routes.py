@@ -1,3 +1,4 @@
+import logging, os
 import json
 from datetime import datetime, timezone
 from werkzeug.exceptions import HTTPException
@@ -15,6 +16,29 @@ allDepositSchema = DepositSchema(many=True)
 transferSchema = TransferSchema()
 allTransferSchema = TransferSchema(many=True)
 
+@app.before_first_request
+def before_first_request():
+    log_level = logging.INFO
+
+    for handler in app.logger.handlers:
+        app.logger.removeHandler(handler)
+
+    root = os.path.dirname(os.path.abspath(__file__))
+    logdir = os.path.join(root, 'logs')
+    if not os.path.exists(logdir):
+        os.mkdir(logdir)
+    log_file = os.path.join(logdir, 'app.log')
+    handler = logging.FileHandler(log_file)
+    handler.setLevel(log_level)
+    app.logger.addHandler(handler)
+
+    app.logger.setLevel(log_level)
+
+    defaultFormatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
+    handler.setFormatter(defaultFormatter)
+
+
+
 @app.before_request
 def checkSafeToSpend():
     if 'access_token_cookie' in request.cookies:
@@ -30,11 +54,13 @@ def checkSafeToSpend():
                 current_user.dateSpend = datetime.utcnow()
 
                 db.session.commit()
+                app.logger.info(f'Update save to spend')
     return
 
 @app.route('/')
 @app.route('/home')
 def home():
+    app.logger.info('Home Page')
     return jsonify('My Banking App!')
 
 @app.route('/register', methods=['POST', 'GET'])
@@ -44,8 +70,10 @@ def register():
         user = User.query.filter_by(email=request.json.get('email')).one_or_none()
         phone = User.query.filter_by(phoneNumber=request.json.get('phone number')).one_or_none()
         if user:
+            app.logger.warning(f'Email already exists \n Email: {user.email}')
             return jsonify('User with this email already exists.')
         if phone:
+            app.logger.warning(f'Phone Number already exists \n Phone Number: {user.phoneNumber}')
             return jsonify('User with this phone number already exists.')
 
         email = request.json.get('email')
@@ -63,6 +91,7 @@ def register():
 
         db.session.add(user)
         db.session.commit()
+        app.logger.info(f'Registration Successful \n Email: {user.email} \n Role: {user.role} \n Account Number: {user.accountNumber}')
         accountNumber = str(int(accountNumber) + 1)
 
         result = userSchema.dump(user)
@@ -84,10 +113,13 @@ def login():
                 })
                 set_access_cookies(response, access_token)
                 set_refresh_cookies(response, refresh_token)
+                app.logger.info(f'Login Successful \n User: {user.email}')
                 return response, 200
             else:
-                return jsonify('Email or Password is incorrect')
+                app.logger.warning(f"Email or Password Incorrect \n Email: {request.json.get('email')} \n Password: {request.json.get('password')}")
+                return jsonify('Email or Password is incorrect'), 400
         else:
+
             abort(400, description='Content-Type must be application/json')
 
 @app.route('/users')
