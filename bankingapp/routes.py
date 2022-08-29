@@ -1,3 +1,4 @@
+from flask_swagger_ui import get_swaggerui_blueprint
 import logging, os
 import json
 from datetime import datetime, timezone
@@ -7,6 +8,7 @@ from bankingapp import db, bcrypt
 from bankingapp.models import Transfer, User, Deposit, UserSchema, DepositSchema, Transfer, TransferSchema, TokenBlocklist
 from flask_jwt_extended import unset_jwt_cookies, verify_jwt_in_request, current_user, get_jwt
 from flask_jwt_extended import set_access_cookies, create_access_token, create_refresh_token, set_refresh_cookies, get_jwt_identity
+# from flask_swagger import swagger
 
 accountNumber = "1000000010"
 userSchema = UserSchema()
@@ -56,13 +58,14 @@ def checkSafeToSpend():
                 app.logger.info(f'Update save to spend')
     return
 
-@app.route('/')
-@app.route('/home', methods=['GET'])
+
+@app.route('/api')
+@app.route('/api/home', methods=['GET'])
 def home():
     app.logger.info('Home Page')
     return jsonify('My Banking App!')
 
-@app.route('/register', methods=['POST', 'GET'])
+@app.route('/api/register', methods=['POST', 'GET'])
 def register():
     global accountNumber
     if request.method == 'POST' and request.is_json:
@@ -399,3 +402,35 @@ def handle_exception(e):
     })
     response.content_type = "application/json"
     return response
+
+# @app.route('/spec')
+# def spec():
+#     swag = swagger(app=app)
+#     swag["info"]["version"] = 1.0
+#     swag["info"]["title"] = "Banking App"
+#     return swag
+
+
+SWAGGER_URL = '/swagger'
+API_URL = '/static/swagger.yaml'
+
+# Call factory function to create our blueprint
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,  # Swagger UI static files will be mapped to '{SWAGGER_URL}/dist/'
+    API_URL,
+    config={  # Swagger UI config overrides
+        
+        'app_name': "Banking App",
+        'app_version': 1.0
+    },
+    # oauth_config={  # OAuth config. See https://github.com/swagger-api/swagger-ui#oauth2-configuration .
+    #    'clientId': "your-client-id",
+    #    'clientSecret': "your-client-secret-if-required",
+    #    'realm': "your-realms",
+    #    'appName': "your-app-name",
+    #    'scopeSeparator': " ",
+    #    'additionalQueryStringParams': {'test': "hello"}
+    # }
+)
+
+app.register_blueprint(swaggerui_blueprint)

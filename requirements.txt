@@ -24,3 +24,5 @@ pyparsing==3.0.9
 python-dotenv==0.20.0
 SQLAlchemy==1.4.36
 Werkzeug==2.1.2
+flask-swagger
+flask-cors
