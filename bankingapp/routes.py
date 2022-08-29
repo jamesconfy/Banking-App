@@ -38,7 +38,6 @@ def before_first_request():
     handler.setFormatter(defaultFormatter)
 
 
-
 @app.before_request
 def checkSafeToSpend():
     if 'access_token_cookie' in request.cookies:
@@ -58,7 +57,7 @@ def checkSafeToSpend():
     return
 
 @app.route('/')
-@app.route('/home')
+@app.route('/home', methods=['GET'])
 def home():
     app.logger.info('Home Page')
     return jsonify('My Banking App!')
