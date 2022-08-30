@@ -21,20 +21,31 @@ paths:
     get:
       tags:
         - Deposit
-      summary: Get all deposits
-      description: A route to list all deposits
+      summary: History of deposits.
+      description: Get the history of deposits into a user's account.
       responses:
         "200":
           description: OK!
           content:
             application/json:
               schema:
-                properties:
-                  role:
-                    type: string
-                    example: Customer
+                type: array
+                items:
+                  type: object
+                  properties:
+                    Date Created:
+                      type: string
+                      format: date
+                      example: 06-12-1970
+                    amount:
+                      type: number
+                      format: float
+                      example: 50000
+                    sender:
+                      type: string
+                      example: Confidence James
         "400":
-          description: You are not authorized to do that!
+          description: You are not authorized to do that.
         "404":
           description: Not Found.
         "500":
@@ -116,6 +127,74 @@ paths:
         "500":
           description: We are having server issues, don't mind us, lol x.
   "/api/deposits/history/{deposit_id}":
+    get:
+      tags:
+        - Deposit
+      parameters:
+        - in: path
+          name: deposit_id
+          required: true
+          description: Deposit ID
+          schema:
+            type: integer
+            format: int32
+      summary: History of deposits.
+      description: Get a particular deposit into a user's account.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                properties:
+                  Date Created:
+                    type: string
+                    format: date
+                    example: 06-12-1970
+                  amount:
+                    type: number
+                    format: float
+                    example: 50000
+                  sender:
+                    type: string
+                    example: Confidence James
+        "400":
+          description: You are not authorized to do that.
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+    delete:
+      tags:
+        - Deposit
+      parameters:
+        - in: path
+          name: deposit_id
+          required: true
+          description: Deposit ID
+          schema:
+            type: integer
+            format: int32
+      summary: Delete a particular deposit.
+      description: Get a particular deposit into a user's account and delete it.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: Deleted successfully.
+        "400":
+          description: You are not authorized to do that.
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/deposits/{deposit_id}":
     get:
       tags:
         - Deposit
@@ -278,9 +357,12 @@ paths:
                 last name:
                   type: string
                   example: James
-                accountType:
+                account type:
                   type: string
                   example: Savings
+                phone number:
+                  type: string
+                  example: "+23481xxxxxxxx"
                 role:
                   type: string
                   example: Customer
@@ -293,6 +375,36 @@ paths:
                 type: string
         "400":
           description: The email or phone number is already in our database, try again!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/safe":
+    get:
+      tags:
+        - Safe
+      summary: Safe to spend
+      description:
+        Get the safe amount left for a user to spend for that particular
+        day.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  Safe To Spend:
+                    type: number
+                    format: float
+                    example: 50000
+        "400":
+          description: You are not authorized to do that.
         "404":
           description: Not Found.
         "500":
@@ -321,17 +433,69 @@ paths:
           description: We are having server issues, don't mind us, lol x.
     post:
       tags:
-        - Admin
+        - Customer
         - Transfer
-      summary: Make a deposit
-      description: Make a deposit
+      summary: Make a transfer (customer)
+      description: Make a transfer, the operator have to be a customer
       requestBody:
-        description: Input the sender, receiver and amount to be deposited
+        description: Input the sender, receiver and amount to be transferred
         content:
           application/json:
             schema:
               required:
-                - account number
+                - receiver
+                - amount
+              properties:
+                receiver:
+                  type: string
+                  example: 100000000
+                amount:
+                  type: number
+                  format: float
+                  example: 50000
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    type: number
+                    example: 200
+                  sender:
+                    type: string
+                    example: Confidence James
+                  amount sent:
+                    type: number
+                    format: float
+                    example: 200000
+                  recipient:
+                    type: string
+                    example: Prisca Ugbah
+                  message:
+                    type: string
+                    example: Successful
+        "400":
+          description: You are not authorized to do this!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/transfers/admin":
+    post:
+      tags:
+        - Admin
+        - Transfer
+      summary: Make a transfer (admin)
+      description: Make a transfer, operator have to be an admin
+      requestBody:
+        description: Input the sender, receiver and amount to be transferred
+        content:
+          application/json:
+            schema:
+              required:
+                - receiver
                 - sender
                 - amount
               properties:
@@ -352,13 +516,100 @@ paths:
             application/json:
               schema:
                 properties:
-                  msg:
+                  code:
+                    type: number
+                    example: 200
+                  sender:
                     type: string
-                    example:
-                      50000 deposited successfully to Confidence James with
-                      account number of 100000000
+                    example: Confidence James
+                  amount sent:
+                    type: number
+                    format: float
+                    example: 500000
+                  receiver:
+                    type: string
+                    example: Prisca Ugbah
+                  message:
+                    type: string
+                    example: Successful
         "400":
           description: You are not authorized to do this!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/transfers/{transfer_id}":
+    get:
+      tags:
+        - Transfer
+      parameters:
+        - in: path
+          name: transfer_id
+          required: true
+          description: Transfer ID
+          schema:
+            type: integer
+            format: int32
+      summary: History of a particular transfer.
+      description: Get a particular transfer from a user's account.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Date Created:
+                    type: string
+                    format: date
+                    example: 06-12-1970
+                  Amount:
+                    type: number
+                    format: float
+                    example: 50000
+                  Receiver's Name:
+                    type: string
+                    example: Confidence James
+                  Receiver's Account Number:
+                    type: string
+                    example: 100000000
+        "400":
+          description: You are not authorized to do that.
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+    delete:
+      tags:
+        - Transfer
+      parameters:
+        - in: path
+          name: transfer_id
+          required: true
+          description: Transfer ID
+          schema:
+            type: integer
+            format: int32
+      summary: Delete a particular transfer.
+      description: Get a particular transfer from a user's account and delete it.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  msg:
+                    type: string
+                    example: Successful
+        "400":
+          description: You are not authorized to do that.
         "404":
           description: Not Found.
         "500":
@@ -426,6 +677,56 @@ paths:
                       example: Customer
         "400":
           description: Email or password is incorrect, please try again!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/users/logout":
+    get:
+      tags:
+        - User
+      summary: Logout a user
+      description: Logout a user and also blacklist the access token.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    msg:
+                      type: string
+                      example: Logout Successful
+        "400":
+          description: You are not authorized to do that.
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/users/refresh":
+    get:
+      tags:
+        - User
+      summary: Refresh Token
+      description: Refresh a users existing token and return a new access token
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    access_token:
+                      type: string
+                      example: random string
+        "400":
+          description: You are not authorized to do that.
         "404":
           description: Not Found.
         "500":

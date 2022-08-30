@@ -10,7 +10,7 @@ from flask_jwt_extended import unset_jwt_cookies, verify_jwt_in_request, current
 from flask_jwt_extended import set_access_cookies, create_access_token, create_refresh_token, set_refresh_cookies, get_jwt_identity
 # from flask_swagger import swagger
 
-accountNumber = "1000000010"
+accountNumber = "1000000000"
 userSchema = UserSchema()
 allUserSchema = UserSchema(many=True)
 depositSchema = DepositSchema()
@@ -39,7 +39,6 @@ def before_first_request():
     defaultFormatter = logging.Formatter('[%(asctime)s] %(levelname)s in %(module)s: %(message)s')
     handler.setFormatter(defaultFormatter)
 
-
 @app.before_request
 def checkSafeToSpend():
     if 'access_token_cookie' in request.cookies:
@@ -58,14 +57,13 @@ def checkSafeToSpend():
                 app.logger.info(f'Update save to spend')
     return
 
-
 @app.route('/api')
 @app.route('/api/home', methods=['GET'])
 def home():
     app.logger.info('Home Page')
     return jsonify('My Banking App!')
 
-@app.route('/api/register', methods=['POST', 'GET'])
+@app.route('/api/register', methods=['POST'])
 def register():
     global accountNumber
     if request.method == 'POST' and request.is_json:
@@ -73,10 +71,10 @@ def register():
         phone = User.query.filter_by(phoneNumber=request.json.get('phone number')).one_or_none()
         if user:
             app.logger.warning(f'Email already exists \n Email: {user.email}')
-            return jsonify('User with this email already exists.')
+            abort(403, description='Email already exists')
         if phone:
             app.logger.warning(f'Phone Number already exists \n Phone Number: {user.phoneNumber}')
-            return jsonify('User with this phone number already exists.')
+            abort(403, description='Phone Number already exists')
 
         email = request.json.get('email')
         password = bcrypt.generate_password_hash(request.json.get('password')).decode('utf-8')
@@ -97,7 +95,7 @@ def register():
         accountNumber = str(int(accountNumber) + 1)
 
         result = userSchema.dump(user)
-        return result
+        return result, 201
 
 @app.route('/login', methods=['POST'])
 def login():
@@ -121,16 +119,15 @@ def login():
                 app.logger.warning(f"Email or Password Incorrect \n Email: {request.json.get('email')} \n Password: {request.json.get('password')}")
                 return jsonify('Email or Password is incorrect'), 400
         else:
-
             abort(400, description='Content-Type must be application/json')
 
-@app.route('/users')
+@app.route('/api/users')
 def users():
     users = User.query.filter_by(role='Customer').order_by(User.dateCreated.desc()).all()
     result = allUserSchema.dump(users)
     return jsonify(result)
 
-@app.route('/users/<int:user_id>', methods=['PATCH', 'GET', 'DELETE'])
+@app.route('/api/users/<int:user_id>', methods=['PATCH', 'GET', 'DELETE'])
 def user(user_id):
     user = User.query.get_or_404(user_id)
     if request.method == 'GET':
@@ -177,11 +174,12 @@ def user(user_id):
         unset_jwt_cookies(response, refresh_token)
         return response, 200
 
-@app.route('/deposits', methods=['POST', 'GET'])
+@app.route('/api/deposits', methods=['POST', 'GET'])
 def deposit():
     verify_jwt_in_request(locations='cookies')
     if request.method == 'GET':
-        return jsonify({"role": f"{current_user.role}"})
+        deposit = Deposit.query.filter_by(user_deposit=current_user)
+        return jsonify(allDepositSchema.dump(deposit))
     
     if request.method == 'POST':
         if request.is_json:
@@ -206,7 +204,7 @@ def deposit():
 
                 response = jsonify({
                     "code": 200,
-                    "message": f"{amount} deposited successfully to {customer.firstName} {customer.lastName} with account number of {accountNumber}"
+                    "msg": f"{amount} deposited successfully to {customer.firstName} {customer.lastName} with account number of {accountNumber}"
                 })
 
                 return response, 200
@@ -216,17 +214,7 @@ def deposit():
         else:
             abort(400, description='Content-Type must be application/json')
 
-@app.route('/deposits/history')
-def depositHistory():
-    verify_jwt_in_request(locations='cookies')
-    deposit = Deposit.query.filter_by(user_deposit=current_user)
-#    print(deposit.user_deposit)
-    # if current_user.role == 'Admin' or current_user.id == deposit.user_deposit.id:
-    return jsonify(allDepositSchema.dump(deposit))
-    
-    # abort(400, description='You are not authorized to do that!')
-
-@app.route('/deposits/history/<int:deposit_id>', methods=['GET', 'DELETE'])
+@app.route('/api/deposits/<int:deposit_id>', methods=['GET', 'DELETE'])
 def depositHistoryOne(deposit_id):
     verify_jwt_in_request(locations='cookies')
     deposit = Deposit.query.get_or_404(deposit_id)
@@ -234,10 +222,10 @@ def depositHistoryOne(deposit_id):
         if request.method == 'GET':
             return jsonify(depositSchema.dump(deposit))
 
-        elif request.method == 'DELETE':
+        if request.method == 'DELETE':
             response = {
                 "code": 200,
-                "description": "Ticket deleted successfully."
+                "msg": "Ticket deleted successfully."
             }
             db.session.delete(deposit)
             db.session.commit()
@@ -250,10 +238,63 @@ def depositHistoryOne(deposit_id):
 def transfer():
     verify_jwt_in_request(locations='cookies')
     if request.method == 'GET':
-        return jsonify({"role": f"{current_user.role}"})
+        transfer = Transfer.query.filter_by(user_transfer=current_user)
+        return jsonify(allTransferSchema.dump(transfer))
     
     if request.method == 'POST':
         if current_user.role == 'Customer':
+            """
+            @api [post] /api/transfers
+            tags: [Customer, Transfer]
+            summary: Make a transfer (customer)
+            description: Make a transfer, the operator have to be a customer
+            requestBody:
+                description: Input the sender, receiver and amount to be transferred
+                content:
+                    application/json:
+                        schema:
+                            required:
+                                - receiver
+                                - amount
+                            properties:
+                                receiver:
+                                    type: string
+                                    example: 100000000
+                                amount:
+                                    type: number
+                                    format: float
+                                    example: 50000.00
+            responses:
+                200:
+                    description: OK!
+                    content:
+                        application/json:
+                            schema:
+                                properties:
+                                    code:
+                                        type: number
+                                        example: 200
+                                    sender:
+                                        type: string
+                                        example: Confidence James
+                                    amount sent: 
+                                        type: number
+                                        format: float
+                                        example: 200000.00
+                                    recipient: 
+                                        type: string
+                                        example: Prisca Ugbah
+                                    message:
+                                        type: string
+                                        example: Successful
+                                        
+                400:
+                    description: You are not authorized to do this!
+                404:
+                    description: Not Found.
+                500:
+                    description: We are having server issues, don't mind us, lol x.
+            """
             if request.is_json: 
                 recipient = User.query.filter_by(accountNumber=request.json.get('receiver')).first()
                 if not recipient:
@@ -283,14 +324,21 @@ def transfer():
                 response = {
                     "code": 200,
                     "sender": f"{current_user.firstName} {current_user.lastName}",
-                    "amount sent": f"{amount}",
+                    "amount sent": amount,
                     "recipient": f"{recipient.firstName} {recipient.lastName}",
                     "message": "Successful"
                 }
 
                 return response, 200             
 
-        elif current_user.role == 'Admin':
+        else:
+            abort(400, description='You are not authorized to do that.')
+
+@app.route('/api/transfers/admin', methods=['POST'])
+def adminTransfer():
+    verify_jwt_in_request(locations='cookies')
+    if current_user.role == 'Admin':
+        if request.is_json: 
             sender = User.query.filter_by(accountNumber=request.json.get('sender')).first()
             if not sender:
                 abort(404, description="Check the sender's account")
@@ -317,25 +365,14 @@ def transfer():
             response = {
                 "code": 200,
                 "sender": f"{sender.firstName} {sender.lastName}",
-                "amount sent": f"{amount}",
+                "amount sent": amount,
                 "receiver": f"{recipient.firstName} {recipient.lastName}",
                 "message": "Successful"
             }
 
             return response, 200
-
-        else:
-            abort(400, description='You are not authorized to do that.')
-
-@app.route('/transfers/history')
-def tranferHistory():
-    # print(user)
-    verify_jwt_in_request(locations='cookies')
-    transfer = Transfer.query.filter_by(user_transfer=current_user)
-    # if current_user.role == 'Admin' or current_user == transfer.user_transfer:
-    return jsonify(allTransferSchema.dump(transfer))
-    
-    # abort(400, description='You are not authorized to do that!')    
+    else:
+        abort(400, description='You are not authorized to do that.')   
 
 @app.route('/transfers/<int:transfer_id>', methods=['GET', 'DELETE'])
 def transferHistoryOne(transfer_id):
@@ -345,10 +382,10 @@ def transferHistoryOne(transfer_id):
         if request.method == 'GET':
             return jsonify(transferSchema.dump(transfer))
 
-        elif request.method == 'DELETE':
+        if request.method == 'DELETE':
             response = {
                 "code": 200,
-                "description": "Ticket deleted successfully."
+                "msg": "Ticket deleted successfully."
             }
             db.session.delete(transfer)
             db.session.commit()
@@ -357,61 +394,49 @@ def transferHistoryOne(transfer_id):
 
     abort(400, description='You are not authorized to do that!')
 
-@app.route('/safe')
+@app.route('/api/safe')
 def safe():
     verify_jwt_in_request(locations='cookies')
     response = {
         "code": 200,
         "Safe To Spend": current_user.safeToSpend
     }
-
     return response, 200
 
-@app.route('/logout')
+@app.route('/api/users/logout')
 def logout():
     verify_jwt_in_request(locations='cookies')
     jti = get_jwt()["jti"]
-    now = datetime.now(timezone.utc)
-    tokenBlock = TokenBlocklist(jti=jti, dateCreated=now)
+    tokenBlock = TokenBlocklist(jti=jti, dateCreated=datetime.now(timezone.utc))
     db.session.add(tokenBlock)
     db.session.commit()
     response = jsonify({"msg": "logout successfully."})
     unset_jwt_cookies(response)
     return response, 200
 
-@app.route('/refresh', methods=['POST'])
+@app.route('/api/users/refresh', methods=['POST'])
 # @jwt_required(locations='cookies', refresh=True)
 def refresh():
     verify_jwt_in_request(locations='cookies', refresh=True)
-    identity = get_jwt_identity()
-    print(identity)
-    print('hello')
     access_token = create_access_token(identity=current_user, fresh=False)
     return jsonify(access_token=access_token)
 
 @app.errorhandler(HTTPException)
-def handle_exception(e):
+def handle_exception(error):
     """Return JSON instead of HTML for HTTP errors."""
     # start with the correct headers and status code from the error
-    response = e.get_response()
+    response = error.get_response()
     # replace the body with JSON
     response.data = json.dumps({
-        "code": e.code,
-        "name": e.name,
-        "message": e.description
+        "code": error.code,
+        "name": error.name,
+        "message": error.description
     })
     response.content_type = "application/json"
     return response
 
-# @app.route('/spec')
-# def spec():
-#     swag = swagger(app=app)
-#     swag["info"]["version"] = 1.0
-#     swag["info"]["title"] = "Banking App"
-#     return swag
 
-
-SWAGGER_URL = '/swagger'
+SWAGGER_URL = '/api/swagger'
 API_URL = '/static/swagger.yaml'
 
 # Call factory function to create our blueprint
