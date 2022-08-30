@@ -4,6 +4,10 @@ info:
   version: 1.0.0
   title: Banking-App
   description: My banking application.
+  contact:
+    name: Confidence James
+    email: bobdence@gmail.com
+    url: "https://github.com/jamesconfy"
 tags:
   - name: User
     description: Handles everything concerning users.
