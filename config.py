@@ -6,7 +6,6 @@ from datetime import timedelta
 USERNAME = env.get('DB_USERNAME')
 PASSWORD = env.get('DB_PASSWORD')
 HOST = env.get('DB_HOST')
-PORT = env.get('DB_PORT')
 NAME = env.get('DB_NAME')
 
 class DevConfig(object):
