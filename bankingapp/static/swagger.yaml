@@ -4,9 +4,6 @@ info:
   version: 1.0.0
   title: Banking-App
   description: My banking application.
-servers:
-  - url: http://127.0.0.1:5000
-  - url: http://localhost:8080
 tags:
   - name: User
     description: Handles everything concerning users.
@@ -22,6 +19,8 @@ paths:
       tags:
         - Deposit
       summary: History of deposits.
+      security:
+        - BearerAuth: []
       description: Get the history of deposits into a user's account.
       responses:
         "200":
@@ -54,6 +53,8 @@ paths:
       tags:
         - Deposit
       summary: Make a deposit
+      security:
+        - BearerAuth: []
       description: Make a deposit
       requestBody:
         description: Input the sender, receiver and amount to be deposited
@@ -93,107 +94,6 @@ paths:
           description: Not Found.
         "500":
           description: We are having server issues, don't mind us, lol x.
-  "/api/deposits/history":
-    get:
-      tags:
-        - Deposit
-      summary: History of deposits.
-      description: Get the history of deposits into a user's account.
-      responses:
-        "200":
-          description: OK!
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  type: object
-                  properties:
-                    Date Created:
-                      type: string
-                      format: date
-                      example: 06-12-1970
-                    amount:
-                      type: number
-                      format: float
-                      example: 50000
-                    sender:
-                      type: string
-                      example: Confidence James
-        "400":
-          description: You are not authorized to do that.
-        "404":
-          description: Not Found.
-        "500":
-          description: We are having server issues, don't mind us, lol x.
-  "/api/deposits/history/{deposit_id}":
-    get:
-      tags:
-        - Deposit
-      parameters:
-        - in: path
-          name: deposit_id
-          required: true
-          description: Deposit ID
-          schema:
-            type: integer
-            format: int32
-      summary: History of deposits.
-      description: Get a particular deposit into a user's account.
-      responses:
-        "200":
-          description: OK!
-          content:
-            application/json:
-              schema:
-                properties:
-                  Date Created:
-                    type: string
-                    format: date
-                    example: 06-12-1970
-                  amount:
-                    type: number
-                    format: float
-                    example: 50000
-                  sender:
-                    type: string
-                    example: Confidence James
-        "400":
-          description: You are not authorized to do that.
-        "404":
-          description: Not Found.
-        "500":
-          description: We are having server issues, don't mind us, lol x.
-    delete:
-      tags:
-        - Deposit
-      parameters:
-        - in: path
-          name: deposit_id
-          required: true
-          description: Deposit ID
-          schema:
-            type: integer
-            format: int32
-      summary: Delete a particular deposit.
-      description: Get a particular deposit into a user's account and delete it.
-      responses:
-        "200":
-          description: OK!
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  msg:
-                    type: string
-                    example: Deleted successfully.
-        "400":
-          description: You are not authorized to do that.
-        "404":
-          description: Not Found.
-        "500":
-          description: We are having server issues, don't mind us, lol x.
   "/api/deposits/{deposit_id}":
     get:
       tags:
@@ -207,6 +107,8 @@ paths:
             type: integer
             format: int32
       summary: History of deposits.
+      security:
+        - BearerAuth: []
       description: Get a particular deposit into a user's account.
       responses:
         "200":
@@ -244,6 +146,8 @@ paths:
             type: integer
             format: int32
       summary: Delete a particular deposit.
+      security:
+        - BearerAuth: []
       description: Get a particular deposit into a user's account and delete it.
       responses:
         "200":
@@ -384,6 +288,8 @@ paths:
       tags:
         - Safe
       summary: Safe to spend
+      security:
+        - BearerAuth: []
       description:
         Get the safe amount left for a user to spend for that particular
         day.
@@ -414,6 +320,8 @@ paths:
       tags:
         - Transfer
       summary: Get all transfers
+      security:
+        - BearerAuth: []
       description: A route to list all transfer
       responses:
         "200":
@@ -436,6 +344,8 @@ paths:
         - Customer
         - Transfer
       summary: Make a transfer (customer)
+      security:
+        - BearerAuth: []
       description: Make a transfer, the operator have to be a customer
       requestBody:
         description: Input the sender, receiver and amount to be transferred
@@ -488,6 +398,8 @@ paths:
         - Admin
         - Transfer
       summary: Make a transfer (admin)
+      security:
+        - BearerAuth: []
       description: Make a transfer, operator have to be an admin
       requestBody:
         description: Input the sender, receiver and amount to be transferred
@@ -551,6 +463,8 @@ paths:
             type: integer
             format: int32
       summary: History of a particular transfer.
+      security:
+        - BearerAuth: []
       description: Get a particular transfer from a user's account.
       responses:
         "200":
@@ -592,6 +506,8 @@ paths:
             type: integer
             format: int32
       summary: Delete a particular transfer.
+      security:
+        - BearerAuth: []
       description: Get a particular transfer from a user's account and delete it.
       responses:
         "200":
@@ -686,6 +602,8 @@ paths:
       tags:
         - User
       summary: Logout a user
+      security:
+        - BearerAuth: []
       description: Logout a user and also blacklist the access token.
       responses:
         "200":
@@ -711,6 +629,8 @@ paths:
       tags:
         - User
       summary: Refresh Token
+      security:
+        - BearerAuth: []
       description: Refresh a users existing token and return a new access token
       responses:
         "200":
@@ -736,6 +656,8 @@ paths:
       tags:
         - User
       summary: Get a specific user
+      security:
+        - BearerAuth: []
       description: Returns JSON if site is up and running
       parameters:
         - in: path
@@ -815,6 +737,8 @@ paths:
             type: integer
             format: int32
       summary: Update User
+      security:
+        - BearerAuth: []
       description: A route to update a user
       requestBody:
         description: Input your credentials to be update your profile
@@ -905,6 +829,8 @@ paths:
             type: integer
             format: int32
       summary: Delete User
+      security:
+        - BearerAuth: []
       description: A route to delete a user
       responses:
         "200":
@@ -922,3 +848,9 @@ paths:
           description: Not Found.
         "500":
           description: We are having server issues, don't mind us, lol x.
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer

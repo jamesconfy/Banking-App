@@ -41,8 +41,8 @@ def before_first_request():
 
 @app.before_request
 def checkSafeToSpend():
-    if 'access_token_cookie' in request.cookies:
-        verify_jwt_in_request(locations='cookies', refresh=True)
+    if 'Authorization: Bearer' in request.headers:
+        verify_jwt_in_request(locations='headers', refresh=False)
         # # token = request.cookies['access_token_cookie']
         # # print(token)
         # identity = get_jwt_identity()
@@ -97,7 +97,7 @@ def register():
         result = userSchema.dump(user)
         return result, 201
 
-@app.route('/login', methods=['POST'])
+@app.route('/api/login', methods=['POST'])
 def login():
     if request.method == 'POST':
         if request.is_json:
@@ -130,10 +130,13 @@ def users():
 @app.route('/api/users/<int:user_id>', methods=['PATCH', 'GET', 'DELETE'])
 def user(user_id):
     user = User.query.get_or_404(user_id)
+    verify_jwt_in_request(locations='headers')
     if request.method == 'GET':
-        return userSchema.dump(user)
+        if current_user == user:
+            return userSchema.dump(user)
+        else:
+            abort(400, description="You are not authorized to do that")
 
-    verify_jwt_in_request(locations='cookies')
     if request.method == 'PATCH':
         if request.is_json:
             if current_user == user:
@@ -176,7 +179,7 @@ def user(user_id):
 
 @app.route('/api/deposits', methods=['POST', 'GET'])
 def deposit():
-    verify_jwt_in_request(locations='cookies')
+    verify_jwt_in_request(locations='headers')
     if request.method == 'GET':
         deposit = Deposit.query.filter_by(user_deposit=current_user)
         return jsonify(allDepositSchema.dump(deposit))
@@ -216,7 +219,7 @@ def deposit():
 
 @app.route('/api/deposits/<int:deposit_id>', methods=['GET', 'DELETE'])
 def depositHistoryOne(deposit_id):
-    verify_jwt_in_request(locations='cookies')
+    verify_jwt_in_request(locations='headers')
     deposit = Deposit.query.get_or_404(deposit_id)
     if current_user == deposit.user_deposit:
         if request.method == 'GET':
@@ -234,67 +237,15 @@ def depositHistoryOne(deposit_id):
 
     abort(400, description='You are not authorized to do that!')
     
-@app.route('/transfers', methods=['POST', 'GET'])
+@app.route('/api/transfers', methods=['POST', 'GET'])
 def transfer():
-    verify_jwt_in_request(locations='cookies')
+    verify_jwt_in_request(locations='headers')
     if request.method == 'GET':
         transfer = Transfer.query.filter_by(user_transfer=current_user)
         return jsonify(allTransferSchema.dump(transfer))
     
     if request.method == 'POST':
         if current_user.role == 'Customer':
-            """
-            @api [post] /api/transfers
-            tags: [Customer, Transfer]
-            summary: Make a transfer (customer)
-            description: Make a transfer, the operator have to be a customer
-            requestBody:
-                description: Input the sender, receiver and amount to be transferred
-                content:
-                    application/json:
-                        schema:
-                            required:
-                                - receiver
-                                - amount
-                            properties:
-                                receiver:
-                                    type: string
-                                    example: 100000000
-                                amount:
-                                    type: number
-                                    format: float
-                                    example: 50000.00
-            responses:
-                200:
-                    description: OK!
-                    content:
-                        application/json:
-                            schema:
-                                properties:
-                                    code:
-                                        type: number
-                                        example: 200
-                                    sender:
-                                        type: string
-                                        example: Confidence James
-                                    amount sent: 
-                                        type: number
-                                        format: float
-                                        example: 200000.00
-                                    recipient: 
-                                        type: string
-                                        example: Prisca Ugbah
-                                    message:
-                                        type: string
-                                        example: Successful
-                                        
-                400:
-                    description: You are not authorized to do this!
-                404:
-                    description: Not Found.
-                500:
-                    description: We are having server issues, don't mind us, lol x.
-            """
             if request.is_json: 
                 recipient = User.query.filter_by(accountNumber=request.json.get('receiver')).first()
                 if not recipient:
@@ -336,7 +287,7 @@ def transfer():
 
 @app.route('/api/transfers/admin', methods=['POST'])
 def adminTransfer():
-    verify_jwt_in_request(locations='cookies')
+    verify_jwt_in_request(locations='headers')
     if current_user.role == 'Admin':
         if request.is_json: 
             sender = User.query.filter_by(accountNumber=request.json.get('sender')).first()
@@ -374,9 +325,9 @@ def adminTransfer():
     else:
         abort(400, description='You are not authorized to do that.')   
 
-@app.route('/transfers/<int:transfer_id>', methods=['GET', 'DELETE'])
+@app.route('/api/transfers/<int:transfer_id>', methods=['GET', 'DELETE'])
 def transferHistoryOne(transfer_id):
-    verify_jwt_in_request(locations='cookies')
+    verify_jwt_in_request(locations='headers')
     transfer = Transfer.query.get_or_404(transfer_id)
     if current_user == transfer.user_transfer:
         if request.method == 'GET':
@@ -396,7 +347,7 @@ def transferHistoryOne(transfer_id):
 
 @app.route('/api/safe')
 def safe():
-    verify_jwt_in_request(locations='cookies')
+    verify_jwt_in_request(locations='headers')
     response = {
         "code": 200,
         "Safe To Spend": current_user.safeToSpend
@@ -405,7 +356,7 @@ def safe():
 
 @app.route('/api/users/logout')
 def logout():
-    verify_jwt_in_request(locations='cookies')
+    verify_jwt_in_request(locations='headers')
     jti = get_jwt()["jti"]
     tokenBlock = TokenBlocklist(jti=jti, dateCreated=datetime.now(timezone.utc))
     db.session.add(tokenBlock)
@@ -417,7 +368,7 @@ def logout():
 @app.route('/api/users/refresh', methods=['POST'])
 # @jwt_required(locations='cookies', refresh=True)
 def refresh():
-    verify_jwt_in_request(locations='cookies', refresh=True)
+    verify_jwt_in_request(locations='headers', refresh=False)
     access_token = create_access_token(identity=current_user, fresh=False)
     return jsonify(access_token=access_token)
 
@@ -444,7 +395,6 @@ swaggerui_blueprint = get_swaggerui_blueprint(
     SWAGGER_URL,  # Swagger UI static files will be mapped to '{SWAGGER_URL}/dist/'
     API_URL,
     config={  # Swagger UI config overrides
-        
         'app_name': "Banking App",
         'app_version': 1.0
     },
