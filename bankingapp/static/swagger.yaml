@@ -858,3 +858,14 @@ components:
     BearerAuth:
       type: http
       scheme: bearer
+
+    # BankingAPIScopes:
+    #   type: oauth2
+    #   flows:
+    #     implicit:
+    #       authorizationUrl: "https://auth.bankingcompany.com/authorize"
+    #       scopes:
+    #         "beneficiary:create": Create beneficiaries
+    #         "beneficiary:read": List beneficiaries
+    #         "beneficiary:delete": Delete beneficiaries
+    #         "beneficiary:manage": Create, list, and delete beneficiaries
