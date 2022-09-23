@@ -5,14 +5,15 @@ import pymysql
 
 ld(".env")
 
-USERNAME = env.get('DB_USERNAME')
+ADDRESS = env.get('DB_ADDRESS')
 PASSWORD = env.get('DB_PASSWORD')
-HOST = env.get('DB_HOST')
+USER = env.get('DB_USER')
 NAME = env.get('DB_NAME')
+PORT = env.get('PORT')
 
 class DevConfig(object):
     SECRET_KEY = env.get('SECRET_KEY')
-    SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{USERNAME}:{PASSWORD}@{HOST}/{NAME}'
+    SQLALCHEMY_DATABASE_URI = f'mysql+pymysql://{USER}:{PASSWORD}@{ADDRESS}/{NAME}'
     SQLALCHEMY_TRACK_MODIFICATIONS = env.get('SQLALCHEMY_TRACK_MODIFICATIONS')
     JWT_COOKIE_SECURE = False
     JWT_ACCESS_TOKEN_EXPIRES = timedelta(hours=2)
