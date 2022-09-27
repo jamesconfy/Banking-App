@@ -8,3 +8,5 @@ flask-bcrypt
 flask-jwt-extended
 python-dotenv
 pymysql
+flask-cors
+flask-swagger-ui
