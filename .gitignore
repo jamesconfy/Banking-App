@@ -135,4 +135,5 @@ sites.db*
 .DStore
 *.db
 app.env
+flask.env
 docker-compose.yml
