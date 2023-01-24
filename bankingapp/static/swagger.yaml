@@ -1,0 +1,860 @@
+---
+openapi: 3.0.0
+info:
+  version: 1.0.0
+  title: Banking App
+  description: My banking application.
+  contact:
+    name: Confidence James
+    email: bobdence@gmail.com
+    url: "https://github.com/jamesconfy"
+tags:
+  - name: User
+    description: Handles everything concerning users.
+  - name: Default
+    description: The default tag.
+  - name: Deposit
+    description: Handles the aspect about deposit.
+  - name: Transfer
+    description: Handles the aspect about transfer.
+paths:
+  "/api/deposits":
+    get:
+      tags:
+        - Deposit
+      summary: History of deposits.
+      security:
+        - BearerAuth: []
+      description: Get the history of deposits into a user's account.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    Date Created:
+                      type: string
+                      format: date
+                      example: 06-12-1970
+                    amount:
+                      type: number
+                      format: float
+                      example: 50000
+                    sender:
+                      type: string
+                      example: Confidence James
+        "400":
+          description: You are not authorized to do that.
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+    post:
+      tags:
+        - Deposit
+      summary: Make a deposit
+      security:
+        - BearerAuth: []
+      description: Make a deposit
+      requestBody:
+        description: Input the sender, receiver and amount to be deposited
+        content:
+          application/json:
+            schema:
+              required:
+                - account number
+                - sender
+                - amount
+              properties:
+                account number:
+                  type: string
+                  example: 100000000
+                sender:
+                  type: string
+                  example: James Confidence
+                amount:
+                  type: number
+                  format: float
+                  example: 50000
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                properties:
+                  msg:
+                    type: string
+                    example:
+                      50000 deposited successfully to Confidence James with
+                      account number of 100000000
+        "400":
+          description: You are not authorized to do this!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/deposits/{deposit_id}":
+    get:
+      tags:
+        - Deposit
+      parameters:
+        - in: path
+          name: deposit_id
+          required: true
+          description: Deposit ID
+          schema:
+            type: integer
+            format: int32
+      summary: History of deposits.
+      security:
+        - BearerAuth: []
+      description: Get a particular deposit into a user's account.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                properties:
+                  Date Created:
+                    type: string
+                    format: date
+                    example: 06-12-1970
+                  amount:
+                    type: number
+                    format: float
+                    example: 50000
+                  sender:
+                    type: string
+                    example: Confidence James
+        "400":
+          description: You are not authorized to do that.
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+    delete:
+      tags:
+        - Deposit
+      parameters:
+        - in: path
+          name: deposit_id
+          required: true
+          description: Deposit ID
+          schema:
+            type: integer
+            format: int32
+      summary: Delete a particular deposit.
+      security:
+        - BearerAuth: []
+      description: Get a particular deposit into a user's account and delete it.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  msg:
+                    type: string
+                    example: Deleted successfully.
+        "400":
+          description: You are not authorized to do that.
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/home":
+    get:
+      tags:
+        - Default
+      summary: Home route
+      description: Returns JSON if site is up and running
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                properties:
+                  value:
+                    type: string
+  "/api/login":
+    post:
+      tags:
+        - User
+      summary: Register user
+      description: A route to register user
+      requestBody:
+        description: Input your credentials to be registered.
+        content:
+          application/json:
+            schema:
+              required:
+                - email
+                - password
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: testing@demo.com
+                password:
+                  type: string
+                  format: password
+                  example: thatisme
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                properties:
+                  access token:
+                    type: string
+                  email:
+                    type: string
+                    format: email
+                    example: test@demo.com
+                  msg:
+                    type: string
+                    default: successful
+                  refresh token:
+                    type: string
+        "400":
+          description: Email or password is incorrect, please try again!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/register":
+    post:
+      tags:
+        - User
+      summary: Register user
+      description: A route to register user
+      requestBody:
+        description: Input your credentials to be registered.
+        content:
+          application/json:
+            schema:
+              required:
+                - email
+                - password
+                - first name
+                - last name
+                - accountType
+                - role
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: testing@demo.com
+                password:
+                  type: string
+                  format: password
+                  example: thatisme
+                first name:
+                  type: string
+                  example: Confidence
+                last name:
+                  type: string
+                  example: James
+                account type:
+                  type: string
+                  example: Savings
+                phone number:
+                  type: string
+                  example: "+23481xxxxxxxx"
+                role:
+                  type: string
+                  example: Customer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: string
+        "400":
+          description: The email or phone number is already in our database, try again!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/safe":
+    get:
+      tags:
+        - Safe
+      summary: Safe to spend
+      security:
+        - BearerAuth: []
+      description:
+        Get the safe amount left for a user to spend for that particular
+        day.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  Safe To Spend:
+                    type: number
+                    format: float
+                    example: 50000
+        "400":
+          description: You are not authorized to do that.
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/transfers":
+    get:
+      tags:
+        - Transfer
+      summary: Get all transfers
+      security:
+        - BearerAuth: []
+      description: A route to list all transfer
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                properties:
+                  role:
+                    type: string
+                    example: Customer
+        "400":
+          description: You are not authorized to do that!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+    post:
+      tags:
+        - Customer
+        - Transfer
+      summary: Make a transfer (customer)
+      security:
+        - BearerAuth: []
+      description: Make a transfer, the operator have to be a customer
+      requestBody:
+        description: Input the sender, receiver and amount to be transferred
+        content:
+          application/json:
+            schema:
+              required:
+                - receiver
+                - amount
+              properties:
+                receiver:
+                  type: string
+                  example: 100000000
+                amount:
+                  type: number
+                  format: float
+                  example: 50000
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    type: number
+                    example: 200
+                  sender:
+                    type: string
+                    example: Confidence James
+                  amount sent:
+                    type: number
+                    format: float
+                    example: 200000
+                  recipient:
+                    type: string
+                    example: Prisca Ugbah
+                  message:
+                    type: string
+                    example: Successful
+        "400":
+          description: You are not authorized to do this!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/transfers/admin":
+    post:
+      tags:
+        - Admin
+        - Transfer
+      summary: Make a transfer (admin)
+      security:
+        - BearerAuth: []
+      description: Make a transfer, operator have to be an admin
+      requestBody:
+        description: Input the sender, receiver and amount to be transferred
+        content:
+          application/json:
+            schema:
+              required:
+                - receiver
+                - sender
+                - amount
+              properties:
+                account number:
+                  type: string
+                  example: 100000000
+                sender:
+                  type: string
+                  example: James Confidence
+                amount:
+                  type: number
+                  format: float
+                  example: 50000
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                properties:
+                  code:
+                    type: number
+                    example: 200
+                  sender:
+                    type: string
+                    example: Confidence James
+                  amount sent:
+                    type: number
+                    format: float
+                    example: 500000
+                  receiver:
+                    type: string
+                    example: Prisca Ugbah
+                  message:
+                    type: string
+                    example: Successful
+        "400":
+          description: You are not authorized to do this!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/transfers/{transfer_id}":
+    get:
+      tags:
+        - Transfer
+      parameters:
+        - in: path
+          name: transfer_id
+          required: true
+          description: Transfer ID
+          schema:
+            type: integer
+            format: int32
+      summary: History of a particular transfer.
+      security:
+        - BearerAuth: []
+      description: Get a particular transfer from a user's account.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  Date Created:
+                    type: string
+                    format: date
+                    example: 06-12-1970
+                  Amount:
+                    type: number
+                    format: float
+                    example: 50000
+                  Receiver's Name:
+                    type: string
+                    example: Confidence James
+                  Receiver's Account Number:
+                    type: string
+                    example: 100000000
+        "400":
+          description: You are not authorized to do that.
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+    delete:
+      tags:
+        - Transfer
+      parameters:
+        - in: path
+          name: transfer_id
+          required: true
+          description: Transfer ID
+          schema:
+            type: integer
+            format: int32
+      summary: Delete a particular transfer.
+      security:
+        - BearerAuth: []
+      description: Get a particular transfer from a user's account and delete it.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  code:
+                    type: integer
+                    format: int32
+                    example: 200
+                  msg:
+                    type: string
+                    example: Successful
+        "400":
+          description: You are not authorized to do that.
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/users":
+    get:
+      tags:
+        - User
+      summary: Get all users
+      description: Returns JSON if site is up and running
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    email:
+                      type: string
+                      example: test@demo.com
+                    First Name:
+                      type: string
+                      example: Example
+                    Last Name:
+                      type: string
+                      example: Example
+                    Phone Number:
+                      type: string
+                      example: 23481xxxxxxxx
+                    Account Number:
+                      type: string
+                      format: number
+                      example: 1000000000
+                    Account Balance:
+                      type: number
+                      format: float
+                      example: 1
+                    Account Type:
+                      type: string
+                      example: Savings
+                    Account Status:
+                      type: string
+                      example: Active
+                    Date Of Birth:
+                      type: string
+                      format: date
+                      example: 06-12-1970
+                    Date Created:
+                      type: string
+                      format: date
+                      example: 06-12-1970
+                    Safe To Spend:
+                      type: number
+                      format: float
+                      example: 5000
+                    Date Spend:
+                      type: string
+                      format: date
+                      example: 06-12-1970
+                    Role:
+                      type: string
+                      example: Customer
+        "400":
+          description: Email or password is incorrect, please try again!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/users/logout":
+    get:
+      tags:
+        - User
+      summary: Logout a user
+      security:
+        - BearerAuth: []
+      description: Logout a user and also blacklist the access token.
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    msg:
+                      type: string
+                      example: Logout Successful
+        "400":
+          description: You are not authorized to do that.
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/users/refresh":
+    get:
+      tags:
+        - User
+      summary: Refresh Token
+      security:
+        - BearerAuth: []
+      description: Refresh a users existing token and return a new access token
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    access_token:
+                      type: string
+                      example: random string
+        "400":
+          description: You are not authorized to do that.
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+  "/api/users/{user_id}":
+    get:
+      tags:
+        - User
+      summary: Get a specific user
+      security:
+        - BearerAuth: []
+      description: Returns JSON if site is up and running
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            format: int32
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                properties:
+                  email:
+                    type: string
+                    example: test@demo.com
+                  First Name:
+                    type: string
+                    example: Example
+                  Last Name:
+                    type: string
+                    example: Example
+                  Phone Number:
+                    type: string
+                    example: 23481xxxxxxxx
+                  Account Number:
+                    type: string
+                    format: number
+                    example: 1000000000
+                  Account Balance:
+                    type: number
+                    format: float
+                    example: 1
+                  Account Type:
+                    type: string
+                    example: Savings
+                  Account Status:
+                    type: string
+                    example: Active
+                  Date Of Birth:
+                    type: string
+                    format: date
+                    example: 06-12-1970
+                  Date Created:
+                    type: string
+                    format: date
+                    example: 06-12-1970
+                  Safe To Spend:
+                    type: number
+                    format: float
+                    example: 5000
+                  Date Spend:
+                    type: string
+                    format: date
+                    example: 06-12-1970
+                  Role:
+                    type: string
+                    example: Customer
+        "400":
+          description: Email or password is incorrect, please try again!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+    patch:
+      tags:
+        - User
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            format: int32
+      summary: Update User
+      security:
+        - BearerAuth: []
+      description: A route to update a user
+      requestBody:
+        description: Input your credentials to be update your profile
+        content:
+          application/json:
+            schema:
+              properties:
+                email:
+                  type: string
+                  format: email
+                  example: testing@demo.com
+                first name:
+                  type: string
+                  example: Confidence
+                last name:
+                  type: string
+                  example: James
+                phone number:
+                  type: string
+                  example: 23481xxxxxxxx
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                properties:
+                  email:
+                    type: string
+                    example: test@demo.com
+                  First Name:
+                    type: string
+                    example: Example
+                  Last Name:
+                    type: string
+                    example: Example
+                  Phone Number:
+                    type: string
+                    example: 23481xxxxxxxx
+                  Account Number:
+                    type: string
+                    format: number
+                    example: 1000000000
+                  Account Balance:
+                    type: number
+                    format: float
+                    example: 1
+                  Account Type:
+                    type: string
+                    example: Savings
+                  Account Status:
+                    type: string
+                    example: Active
+                  Date Of Birth:
+                    type: string
+                    format: date
+                    example: 06-12-1970
+                  Date Created:
+                    type: string
+                    format: date
+                    example: 06-12-1970
+                  Safe To Spend:
+                    type: number
+                    format: float
+                    example: 5000
+                  Date Spend:
+                    type: string
+                    format: date
+                    example: 06-12-1970
+                  Role:
+                    type: string
+                    example: Customer
+        "400":
+          description: The email or phone number is already in our database, try again!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+    delete:
+      tags:
+        - User
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          description: User ID
+          schema:
+            type: integer
+            format: int32
+      summary: Delete User
+      security:
+        - BearerAuth: []
+      description: A route to delete a user
+      responses:
+        "200":
+          description: OK!
+          content:
+            application/json:
+              schema:
+                properties:
+                  msg:
+                    type: string
+                    example: User successfully deleted.
+        "400":
+          description: The email or phone number is already in our database, try again!
+        "404":
+          description: Not Found.
+        "500":
+          description: We are having server issues, don't mind us, lol x.
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer

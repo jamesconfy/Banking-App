@@ -2,6 +2,9 @@ setup:
 	python3 -m venv .venv
 	. .venv/bin/activate
 
+activate:
+	source venv/bin/activate
+
 install:
 	pip install --upgrade pip
 	pip install -r requirements.txt
@@ -14,5 +17,5 @@ migration:
 	flask db upgrade
 
 run:
-	gunicorn --bind 0.0.0.0:80 run:app
+	gunicorn --bind 0.0.0.0:5000 run:app
 	# python run.py
