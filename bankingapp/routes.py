@@ -125,6 +125,7 @@ def login():
 def users():
     users = User.query.filter_by(role='Customer').order_by(User.dateCreated.desc()).all()
     result = allUserSchema.dump(users)
+    app.logger.info(f'All users: {users}')
     return jsonify(result)
 
 @app.route('/api/users/<int:user_id>', methods=['PATCH', 'GET', 'DELETE'])
@@ -133,8 +134,10 @@ def user(user_id):
     verify_jwt_in_request(locations='headers')
     if request.method == 'GET':
         if current_user == user:
+            app.logger.info(f'User: {user}')
             return userSchema.dump(user)
         else:
+            app.logger.warning(f'Not authorized to perform operation: {user}')
             abort(400, description="You are not authorized to do that")
 
     if request.method == 'PATCH':
@@ -159,9 +162,11 @@ def user(user_id):
                     user.phoneNumber = phoneNumber
 
                 db.session.commit()
+                app.logger.info(f'User Updated Successfully: {user}')
                 return userSchema.dump(user)
 
         else:
+            app.logger.info(f'Wrong content-type')
             abort(400, description='Content-Type must be application/json')
 
     if request.method == 'DELETE':
@@ -175,6 +180,7 @@ def user(user_id):
         refresh_token = request.cookies.get("refresh_token")
         unset_jwt_cookies(response, access_token)
         unset_jwt_cookies(response, refresh_token)
+        app.logger.warning(f'User Delete Successfully: {user}')
         return response, 200
 
 @app.route('/api/deposits', methods=['POST', 'GET'])
@@ -182,6 +188,7 @@ def deposit():
     verify_jwt_in_request(locations='headers')
     if request.method == 'GET':
         deposit = Deposit.query.filter_by(user_deposit=current_user)
+        app.logger.info(f'Deposits: {deposit}')
         return jsonify(allDepositSchema.dump(deposit))
     
     if request.method == 'POST':
@@ -209,12 +216,14 @@ def deposit():
                     "code": 200,
                     "msg": f"{amount} deposited successfully to {customer.firstName} {customer.lastName} with account number of {accountNumber}"
                 })
-
+                app.logger.info(f'Amount deposited successfully: {deposit}')
                 return response, 200
 
             else:
+                app.logger.warning(f'Unauthorized')
                 abort(404, description='You are not authorized to do that!')
         else:
+            app.logger.critical(f'Invalid content type')
             abort(400, description='Content-Type must be application/json')
 
 @app.route('/api/deposits/<int:deposit_id>', methods=['GET', 'DELETE'])
@@ -223,6 +232,7 @@ def depositHistoryOne(deposit_id):
     deposit = Deposit.query.get_or_404(deposit_id)
     if current_user == deposit.user_deposit:
         if request.method == 'GET':
+            app.logger.info(f'Deposit: {deposit}')
             return jsonify(depositSchema.dump(deposit))
 
         if request.method == 'DELETE':
@@ -233,8 +243,10 @@ def depositHistoryOne(deposit_id):
             db.session.delete(deposit)
             db.session.commit()
 
+            app.logger.info(f'Deposit deleted successfully: {deposit}')
             return response, 200
 
+    app.logger.warning(f'Unauthorized')
     abort(400, description='You are not authorized to do that!')
     
 @app.route('/api/transfers', methods=['POST', 'GET'])
@@ -242,6 +254,7 @@ def transfer():
     verify_jwt_in_request(locations='headers')
     if request.method == 'GET':
         transfer = Transfer.query.filter_by(user_transfer=current_user)
+        app.logger.info(f'Transfer successful: {transfer}')
         return jsonify(allTransferSchema.dump(transfer))
     
     if request.method == 'POST':
@@ -280,9 +293,11 @@ def transfer():
                     "message": "Successful"
                 }
 
+                app.logger.info(f'Transfer and Deposit successfull.\nTransfer: {transfer}\nDeposit: {deposit}')
                 return response, 200             
 
         else:
+            app.logger.warning(f'Unauthorized')
             abort(400, description='You are not authorized to do that.')
 
 @app.route('/api/transfers/admin', methods=['POST'])
@@ -292,10 +307,12 @@ def adminTransfer():
         if request.is_json: 
             sender = User.query.filter_by(accountNumber=request.json.get('sender')).first()
             if not sender:
+                app.logger.warning(f'Wrong sender')
                 abort(404, description="Check the sender's account")
 
             recipient = User.query.filter_by(accountNumber=request.json.get('receiver')).first()
             if not recipient:
+                app.logger.warning(f'Wrong destination')
                 abort(404, description="Check your destination's account")
 
             amount = request.json.get('amount')
@@ -304,6 +321,7 @@ def adminTransfer():
                 sender.safeToSpend -= amount
                 recipient.accountBalance += amount
             else:
+                app.logger.info(f'Insufficient Balance\nUser: {sender}')
                 abort(400, description='Insufficient Balance!')
 
             transfer = Transfer(amount=amount, receiverAccountNumber=f'{recipient.accountNumber}', receiverName=f'{recipient.firstName} {recipient.lastName}', user_transfer=sender)
@@ -321,8 +339,10 @@ def adminTransfer():
                 "message": "Successful"
             }
 
+            app.logger.info(f'Transfer successful: {transfer}')
             return response, 200
     else:
+        app.logger.warning(f'Unauthorized')
         abort(400, description='You are not authorized to do that.')   
 
 @app.route('/api/transfers/<int:transfer_id>', methods=['GET', 'DELETE'])
@@ -331,6 +351,7 @@ def transferHistoryOne(transfer_id):
     transfer = Transfer.query.get_or_404(transfer_id)
     if current_user == transfer.user_transfer:
         if request.method == 'GET':
+            app.logger.warning(f'Transfer: {transfer}')
             return jsonify(transferSchema.dump(transfer))
 
         if request.method == 'DELETE':
@@ -341,6 +362,7 @@ def transferHistoryOne(transfer_id):
             db.session.delete(transfer)
             db.session.commit()
 
+            app.logger.warning(f'Transfer deleted successfully: {transfer}')
             return response, 200
 
     abort(400, description='You are not authorized to do that!')
@@ -352,6 +374,7 @@ def safe():
         "code": 200,
         "Safe To Spend": current_user.safeToSpend
     }
+    app.logger.warning(f'Safe')
     return response, 200
 
 @app.route('/api/users/logout')
@@ -363,6 +386,7 @@ def logout():
     db.session.commit()
     response = jsonify({"msg": "logout successfully."})
     unset_jwt_cookies(response)
+    app.logger.info(f'Logout by user: {current_user.email}')
     return response, 200
 
 @app.route('/api/users/refresh', methods=['POST'])
@@ -370,6 +394,7 @@ def logout():
 def refresh():
     verify_jwt_in_request(locations='headers', refresh=False)
     access_token = create_access_token(identity=current_user, fresh=False)
+    app.logger.warning(f'Refreshed successfully\nToken: {access_token}')
     return jsonify(access_token=access_token)
 
 @app.errorhandler(HTTPException)

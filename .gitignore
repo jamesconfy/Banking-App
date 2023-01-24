@@ -134,5 +134,5 @@ sites.db*
 .vscode*
 .DStore
 *.db
-*.env
+app.env
 docker-compose.yml
