@@ -33,7 +33,7 @@ You can finally run `flask run` to start the app in development mode, or `gunico
 
   ```terminal
   [2023-01-24 19:59:03 +0100] [75909] [INFO] Starting gunicorn 20.1.0
-  [2023-01-24 19:59:03 +0100] [75909] [INFO] Listening at: http://0.0.0.0:2000 (75909)
+  [2023-01-24 19:59:03 +0100] [75909] [INFO] Listening at: http://0.0.0.0:5000 (75909)
   [2023-01-24 19:59:03 +0100] [75909] [INFO] Using worker: gthread
   [2023-01-24 19:59:03 +0100] [75910] [INFO] Booting worker with pid: 75910
   ```
